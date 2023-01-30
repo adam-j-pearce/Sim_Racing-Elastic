@@ -10,7 +10,7 @@
 	"track": {
 		"track": "track",
 		"version": "version"
-	}
+	},
 	"input": {
 		"throttle": "Throttle",
 		"brake": "Brake",
@@ -34,8 +34,8 @@
 		"optimal_delta" : "LapDeltaToOptimal",
 		"session_delta" : "LapDeltaToSession",
 		"last_delta" : "LapDeltatoSessionLastLap",
-		"lappct": "LapDistPct",
-		"
+		"lappct": "LapDistPct"
+	},
 	"meta": {
 		"in_pits": "IsInPits",
 		"on_track": "IsOnTrack"

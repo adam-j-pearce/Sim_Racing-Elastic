@@ -6,9 +6,9 @@
 		"class": "PlayerCarClass",
 		"vehicle": "PlayerCarVehicle"
 	},
-	"track" {
+	"track": {
 		"track" : "track",
 		"version" : "version"
-	}
+	},
 	"lap": "Lap"
 }
