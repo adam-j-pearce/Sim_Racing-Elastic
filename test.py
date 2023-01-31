@@ -1,6 +1,5 @@
 import irsdk
 import time
-import json
 
 # this is our State class, with some helpful variables
 class State:
@@ -22,17 +21,20 @@ def check_iracing():
 # and do something useful with it
 def loop():
 
-    DriverInfo = ir['DriverInfo']
-    DriversSTR = (DriverInfo['Drivers'])
-    print(type(DriversSTR))
-    test = ''.join(str(x) for x in DriversSTR)
-    print (test)
-    print(type(test))
-    Driver = test.replace("'","\"")
-    Drivers = Driver.replace("None","\"None\"")
-    print(Drivers)
-    work = json.loads(Drivers)
-    print(work['UserName'])
+    driver_car_id = ir['PlayerCarIdx']
+    driver_name = ir['DriverInfo']['Drivers'][driver_car_id]['UserName']
+    driver_id = ir['DriverInfo']['Drivers'][driver_car_id]['UserID']
+    car_name = ir['DriverInfo']['Drivers'][driver_car_id]['CarScreenName']
+    car_class = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassShortName']
+    track_name = ir['WeekendInfo']['TrackDisplayName']
+    track_config = ir['WeekendInfo']['TrackConfigName']
+    event_type = ir['WeekendInfo']['EventType']
+    session_id = ir['WeekendInfo']['SessionID']
+
+    print(driver_name, driver_id, car_name, car_class, track_name, track_config, event_type, session_id)
+
+    
+
    
 
 if __name__ == '__main__':
