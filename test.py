@@ -1,5 +1,11 @@
 import irsdk
 import time
+from datetime import datetime
+
+driver_clean_lap = False
+driver_lap = int(1)
+inc_count = 0
+fuel_level_start = 0
 
 # this is our State class, with some helpful variables
 class State:
@@ -16,29 +22,56 @@ def check_iracing():
     elif not state.ir_connected and ir.startup() and ir.is_initialized and ir.is_connected:
         state.ir_connected = True
         print('irsdk connected')
-     
-# our main loop, where we retrieve data
-# and do something useful with it
+        session()
+        track()
+
+
 def loop():
 
-    driver_car_id = ir['PlayerCarIdx']
+    global timestamp
+    now = datetime.now()
+    timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
+    driver()
+    log_lap()
+    log_telemtry()
 
-    car_name = ir['DriverInfo']['Drivers'][driver_car_id]['CarScreenName']
-    car_class = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassShortName']
-    car_num = ir['DriverInfo']['Drivers'][driver_car_id]['CarNumber'] 
-    power_adj = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassPowerAdjust']
-    weight_pen = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassWeightPenalty']
-    
-    car_info={
-        "car": {
-            "name":car_name,
-            "class":car_class,
-            "number":car_num,
-            "power_adj":power_adj,
-            "weight_penalty":weight_pen
+def session():
+    global session_info
+    session_type = ir['WeekendInfo']['EventType']
+    session_id = ir['WeekendInfo']['SessionID']
+    subsession_id = ir['WeekendInfo']['SubSessionID']
+    season_id = ir['WeekendInfo']['SeasonID']
+    official = ir['WeekendInfo']['Official']
+
+    if official == "0":
+        official = False
+    else:
+        official = True
+
+    session_info = {
+            "type":session_type,
+            "id":session_id,
+            "sub_id":subsession_id,
+            "season":season_id,
+            "official":official
         }
-    }    
-        
+
+    return session_info
+
+def track():
+    global track_info
+    track_name = ir['WeekendInfo']['TrackDisplayName']
+    track_config = ir['WeekendInfo']['TrackConfigName']
+
+    track_info = {
+            "name":track_name,
+            "configuration":track_config
+        }
+
+    return track_info
+
+def driver():
+    driver_car_id = ir['PlayerCarIdx']
     driver_name = ir['DriverInfo']['Drivers'][driver_car_id]['UserName']
     driver_id = ir['DriverInfo']['Drivers'][driver_car_id]['UserID']
     if ir['DriverInfo']['Drivers'][driver_car_id]['TeamName'] == 1:
@@ -49,14 +82,63 @@ def loop():
     license = ir['DriverInfo']['Drivers'][driver_car_id]['LicString']
     
     driver_info = {
-        "driver":{
-            "name":driver_name,
-            "id":driver_id,
-            "team":team,
-            "irating":irating,
-            "license":license
-        }
+        "name":driver_name,
+        "id":driver_id,
+        "team":team,
+        "irating":irating,
+        "license":license
     }
+
+    return driver_info
+
+def log_lap():
+
+    global driver_clean_lap
+    global inc_count
+    global driver_lap
+    global fuel_level_start
+
+    lap = ir['Lap']
+    #firstly checks to see if user is the current driver, If not will skip.
+    if ir['IsOnTrack'] == True:
+        #If active driver will poll to check if driver is either in the pitlane or incurred incident points to see if lap is valid
+        if ir['DriverInfo']['DriverIncidentCount'] > inc_count or ir['OnPitRoad'] == True:
+            if driver_clean_lap == True:
+                print('Lap',ir['Lap'],'Invalidated')
+                driver_clean_lap = False
+                inc_count = ir['DriverInfo']['DriverIncidentCount']
+
+     #Check for when driver starts a new lap to record lap information.
+    if lap > driver_lap:
+        lap_time = ir['LapLastLapTime']
+        #takes current fuel level to calculate fuel usage for lap
+        fuel_level = ir['FuelLevel']
+
+        #generate the log
+        lap_log={
+            "@timestamp":timestamp,
+            "session":session_info,
+            "track":track_info,
+            "driver":driver(),
+            "lap":{
+                "number":driver_lap,
+                "time":lap_time,
+                "clean":driver_clean_lap
+            },
+            "fuel":{
+                "at_start":fuel_level_start,
+                "at_end":fuel_level,
+                "used":fuel_level_start - fuel_level
+            }
+        }
+        driver_lap = driver_lap + 1
+        fuel_level_start = fuel_level
+        driver_clean_lap = True
+        print(lap_log)
+
+        #update variables ready for next lap to be completed.
+
+def log_telemtry():
 
     throttle = ir['Throttle']
     brake = ir['Brake']
@@ -75,9 +157,12 @@ def loop():
     velocity_y = ir['VelocityY']
     velocity_z = ir['VelocityZ']
 
-    telemetry={
-        "telemtry":{
-            "input":{
+    telemtry_log = {
+        "@timestamp":timestamp,
+        "session":session_info,
+        "track":track_info,
+        "driver":driver(),
+        "input":{
             "throttle":throttle,
             "brake":brake,
             "clutch":clutch,
@@ -86,7 +171,7 @@ def loop():
             "gear":gear,
             "boost_active":boost,
             "p2p_active":p2p
-            },
+        },
         "output":{
             "speed":speed,
             "lat_accel":lat_accel,
@@ -95,40 +180,10 @@ def loop():
             "roll":roll,
             "velocity_x":velocity_x,
             "velocity_y":velocity_y,
-            "velocity_z":velocity_z,
-            }
-        }
-        
-    }
-
-    session_type = ir['WeekendInfo']['EventType']
-    session_id = ir['WeekendInfo']['SessionID']
-    subsession_id = ir['WeekendInfo']['SubSessionID']
-    season_id = ir['WeekendInfo']['SeasonID']
-    official = ir['WeekendInfo']['Official']
-
-    session_info = {
-        "session":{
-            "type":session_type,
-            "id":session_id,
-            "sub_id":subsession_id,
-            "season":season_id,
-            "official":official
+            "velocity_z":velocity_z,  
         }
     }
-
-    track_name = ir['WeekendInfo']['TrackDisplayName']
-    track_config = ir['WeekendInfo']['TrackConfigName']
-
-    track_info = {
-        "track":{
-            "name":track_name,
-            "configuration":track_config
-        }
-    }
-
-    print(session_info|track_info|driver_info|car_info|telemetry)
-
+    print(telemtry_log)
 
 if __name__ == '__main__':
     # initializing ir and state

@@ -57,15 +57,15 @@ def telemetry():
 
     telemetry={
         "telemtry":{
-            "input":{
-            "throttle":throttle,
-            "brake":brake,
-            "clutch":clutch,
-            "steering_angle":steering,
-            "rpm":rpm,
-            "gear":gear,
-            "boost_active":boost,
-            "p2p_active":p2p
+                "input":{
+                "throttle":throttle,
+                "brake":brake,
+                "clutch":clutch,
+                "steering_angle":steering,
+                "rpm":rpm,
+                "gear":gear,
+                "boost_active":boost,
+                "p2p_active":p2p
             },
         "output":{
             "speed":speed,
@@ -78,7 +78,6 @@ def telemetry():
             "velocity_z":velocity_z,
             }
         }
-        
     }
 
 def session():
@@ -88,15 +87,19 @@ def session():
     season_id = ir['WeekendInfo']['SeasonID']
     official = ir['WeekendInfo']['Official']
 
+    if official == "0":
+        official = False
+    else:
+        official = True
+
     session_info = {
-        "session":{
             "type":session_type,
             "id":session_id,
             "sub_id":subsession_id,
             "season":season_id,
             "official":official
         }
-    }
+    print(session_info)
 
 def track():
     track_name = ir['WeekendInfo']['TrackDisplayName']
@@ -109,3 +112,29 @@ def track():
         }
     }
 
+    #check for new lap and reset clean_lap, will print new lap number, for self only.
+    if ir['Lap'] > lap:
+        print('Lap',ir['Lap'],'started')
+        lap = ir['Lap']
+        clean_lap = 'True'
+        lap_time = ir['LapLastLapTime']
+        fuel_lap_start = ir['FuelLevel']
+
+        print('last lap:',lap_time)
+
+    #will mark lap as invalid if incident count increases on lap.
+    if ir['DriverInfo']['DriverIncidentCount'] > inc_count or ir['OnPitRoad'] == True:
+        print('Lap Invalidated')
+        clean_lap = 'False'
+        inc_count = ir['DriverInfo']['DriverIncidentCount']
+
+def fuel():
+
+    fuel_level = ir['FuelLevel']
+    fuel_used_lap = fuel_level - fuel_start_lap
+    fuel_info ={
+        "fuel":{
+            "level":fuel_level,
+            "used":fuel_used_lap
+        }
+    }
