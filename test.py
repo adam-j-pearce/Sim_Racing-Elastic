@@ -33,7 +33,7 @@ def loop():
     timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
     driver()
     log_lap()
-    log_telemtry()
+    #log_telemtry()
 
 def session():
     global session_info
