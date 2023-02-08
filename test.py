@@ -31,9 +31,13 @@ def loop():
     global timestamp
     now = datetime.now()
     timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
-    driver()
-    log_lap()
-    #log_telemtry()
+    
+    if ir['IsOnTrack'] == True:
+        driver()
+        log_lap()
+        log_telemtry()
+
+    print(ir['DriverInfo']['Drivers']['0'])
 
 def session():
     global session_info
