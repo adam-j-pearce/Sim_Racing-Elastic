@@ -32,6 +32,7 @@ def driver_enter_car():
     global lap
     global driver_lap
     global driver_car_id
+    global telemetry_array
         
     driver_check = True
     inc_count = ir['PlayerCarMyIncidentCount']
@@ -40,10 +41,12 @@ def driver_enter_car():
     lap = ir['Lap']
     driver_lap = ir['Lap']
     driver_car_id = ir['PlayerCarIdx']
+    telemetry_array = []
 
 def log_telemetry():
 
     global telemetry_info
+    global telemetry_array
     
     telemetry_info={
         "@timestamp":timestamp,
@@ -53,6 +56,12 @@ def log_telemetry():
         "telemetry":logging.telemetry(),
         "meta":logging.meta()
     }
+
+    es.index(
+    index='test-telemetry',
+    document=json.dumps(telemetry_info)
+    )
+    telemetry_array.clear()
 
     return (telemetry_info)
 
@@ -187,12 +196,10 @@ class logging:
         season_id = ir['WeekendInfo']['SeasonID']
         official = ir['WeekendInfo']['Official']
 
-        if session == "Test":
+        if str(ir['WeekendInfo']['EventType']) == "Test":
             now = datetime.now()
-            timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
+            timestamp = now.strftime("%d/%m/%Y %H:%M:%S")
             session_id == "Testing-",timestamp
-        else:
-           session_id = ir['WeekendInfo']['SessionID']
 
         if official == "0":
             official = False
@@ -230,6 +237,7 @@ class logging:
         current_lap_time = ir['LapCurrentLapTime']
         lap_dist = ir['LapDist']
         lap_dist_pct = ir['LapDistPct']
+        lap_number = ir['Lap']
 
 
         telemtry_log = {
@@ -254,6 +262,7 @@ class logging:
                 "velocity_z":velocity_z,  
             },
             "current_lap": {
+                "number": lap_number,
                 "time": current_lap_time,
                 "distance": lap_dist,
                 "percentage": lap_dist_pct
@@ -294,6 +303,7 @@ def loop():
     global driver_check
     global driver_info
     global lap
+    global driver_lap
     
     now = datetime.now()
     timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
@@ -322,7 +332,7 @@ if __name__ == '__main__':
             check_iracing()
             if state.ir_connected:
                 loop()
-            time.sleep(1)
+            time.sleep(0.1)
     except KeyboardInterrupt:
         # press ctrl+c to exit
         pass
