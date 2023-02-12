@@ -1,6 +1,7 @@
 import irsdk
 import time
-from datetime import datetime
+from time import gmtime,strftime
+from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch, helpers
 import configparser
 import json
@@ -10,7 +11,7 @@ config.read('example.ini')
 
 es = Elasticsearch(
     cloud_id="7cca989133cf49fbbe8251be0453787d:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvJGVjZjhmMDI4NzZlODRhMDhhNjk1YzM5YmNlODRiYTZlJGE4NDJiOWUwNGM3NDRiYzJiN2I5MTQ3OWExY2I3ZDk2",
-    basic_auth=("enterprise_search","this_is_a_secure_password")
+    basic_auth=("remote_ingest","BigRedBus2023!")
 )
 
 es.info
@@ -72,7 +73,6 @@ def log_lap():
             driver_clean_lap = False
             inc_count = ir['DriverInfo']['DriverIncidentCount']
 
-        #Check for when driver starts a new lap to record lap information.
     lap_log={
         "@timestamp":timestamp,
         "session":logging.session(),
@@ -148,13 +148,15 @@ class logging:
         global lap
         global driver_lap
         
-        lap_time = ir['LapLastLapTime']
+        lap_time_s = ir['LapLastLapTime']
+        lap_time= str(timedelta(seconds=lap_time_s))
         #takes current fuel level to calculate fuel usage for lap
         fuel_level = ir['FuelLevel']
 
         #generate the log
         lap={
             "number":driver_lap,
+            "time_s":lap_time_s,
             "time":lap_time,
             "clean":driver_clean_lap
         }
