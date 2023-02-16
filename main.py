@@ -3,11 +3,7 @@ import time
 from time import gmtime,strftime
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch, helpers
-import configparser
 import json
-
-config = configparser.ConfigParser()
-config.read('example.ini')
 
 es = Elasticsearch(
     cloud_id="7cca989133cf49fbbe8251be0453787d:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvJGVjZjhmMDI4NzZlODRhMDhhNjk1YzM5YmNlODRiYTZlJGE4NDJiOWUwNGM3NDRiYzJiN2I5MTQ3OWExY2I3ZDk2",
