@@ -4,6 +4,7 @@ from time import gmtime,strftime
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch, helpers
 import json
+import csv
 
 es = Elasticsearch(
     cloud_id="7cca989133cf49fbbe8251be0453787d:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvJGVjZjhmMDI4NzZlODRhMDhhNjk1YzM5YmNlODRiYTZlJGE4NDJiOWUwNGM3NDRiYzJiN2I5MTQ3OWExY2I3ZDk2",
@@ -24,20 +25,24 @@ def driver_enter_car():
     global driver_check
     global inc_count
     global fuel_level
+    global fuel_start_lap
     global driver_clean_lap
     global lap
     global driver_lap
     global driver_car_id
     global telemetry_array
+    global count
         
     driver_check = True
     inc_count = ir['PlayerCarMyIncidentCount']
     fuel_level = ir['FuelLevel']
+    fuel_start_lap = 0
     driver_clean_lap = True
     lap = ir['Lap']
     driver_lap = ir['Lap']
     driver_car_id = ir['PlayerCarIdx']
     telemetry_array = []
+    count=0
 
 def log_telemetry():
 
@@ -50,6 +55,7 @@ def log_telemetry():
         "track":logging.track(),
         "driver":logging.driver(),
         "telemetry":logging.telemetry(),
+        "fuel":logging.fuel(),
         "meta":logging.meta()
     }
 
@@ -65,7 +71,6 @@ def log_lap():
 
     global driver_check
     global inc_count
-    global fuel_level
     global driver_clean_lap
     global lap
     global driver_lap
@@ -85,6 +90,7 @@ def log_lap():
         "car":logging.car(),
         "driver":logging.driver(),
         "lap":logging.lap(),
+        "fuel":logging.fuel(),
         "meta":logging.meta()
         }
 
@@ -95,7 +101,11 @@ def log_lap():
 
 def log_timetower():
 
-    return("hello")
+    driver_count=(len(ir['DriverInfo']['Drivers']))
+    driver_array = [range(driver_count)]
+    for x in range(driver_count):
+        if ir['DriverInfo']['Drivers'][x]['UserName']:
+            driver_array.append(ir['DriverInfo']['Drivers'][x]['UserName'])
 
 class logging:
 
@@ -104,10 +114,15 @@ class logging:
         global driver_car_id
 
         car_name = ir['DriverInfo']['Drivers'][driver_car_id]['CarScreenName']
-        car_class = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassShortName']
+        car_class=""
         car_num = ir['DriverInfo']['Drivers'][driver_car_id]['CarNumber'] 
         power_adj = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassPowerAdjust']
         weight_pen = ir['DriverInfo']['Drivers'][driver_car_id]['CarClassWeightPenalty']
+        with open('car_list.csv', "r") as csv_file:
+            car_list = csv.reader(csv_file, delimiter = ',')
+            for row in car_list:
+                if car_name in row[0]:
+                    car_class = str(row[1])
     
         car_info={
             "name":car_name,
@@ -116,7 +131,8 @@ class logging:
             "power_adj":power_adj,
             "weight_penalty":weight_pen
         }
-
+        print(car_name)
+        print(car_class)
         return car_info
 
     def driver():
@@ -130,7 +146,7 @@ class logging:
         if ir['DriverInfo']['Drivers'][driver_car_id]['TeamName'] == 1:
             team = ir['DriverInfo']['Drivers'][driver_car_id]['TeamName']
         else: 
-            team = 'n/a'
+            team = ''
         irating = ir['DriverInfo']['Drivers'][driver_car_id]['IRating']
         license = ir['DriverInfo']['Drivers'][driver_car_id]['LicString']
     
@@ -144,11 +160,25 @@ class logging:
         
         return driver_info
 
+    def fuel():
+
+        global fuel_start_lap
+        fuel_level = ir['FuelLevel']
+
+        fuel={
+            "start":fuel_start_lap,
+            "end":fuel_level,
+            "used":fuel_start_lap - fuel_level
+        }
+
+        return fuel
+
+
     def lap():
 
         global driver_check
         global inc_count
-        global fuel_level
+        global fuel_start_lap
         global driver_clean_lap
         global lap
         global driver_lap
@@ -156,21 +186,19 @@ class logging:
         lap_time_s = ir['LapLastLapTime']
         lap_time= str(timedelta(seconds=lap_time_s))
         #takes current fuel level to calculate fuel usage for lap
-        fuel_level = ir['FuelLevel']
 
         #generate the log
         lap={
             "number":driver_lap,
             "time_s":lap_time_s,
             "time":lap_time,
-            "clean":driver_clean_lap
+            "clean":driver_clean_lap,
         }
         
         #update variables ready for next lap to be completed.
         driver_lap = driver_lap + 1
         driver_clean_lap = True
-        
-        return(lap)
+        fuel_start_lap = ir['FuelLevel']
 
     def meta():
 
