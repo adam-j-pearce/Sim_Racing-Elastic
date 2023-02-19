@@ -120,3 +120,9 @@ class logs():
         }
 
         return lap
+
+    def pit_initiate():
+
+        pit_lap_array=[]
+
+        return pit_lap_array
