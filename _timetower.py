@@ -3,6 +3,8 @@ import csv
 from elasticsearch import Elasticsearch, helpers
 import configparser
 import json
+import time
+from _log import logs
 
 ir = irsdk.IRSDK()
 ir.startup()
@@ -23,14 +25,13 @@ class timetower():
             pit_array = (ir['CarIdxOnPitRoad'])
             pit = pit_array[x]
             tuple_check = (car_num,lap,pit)
-            print(x)
-            print(tuple_check)
-            print(check_array)
 
             if tuple_check not in check_array:
                 check_array.append(tuple_check)
                 driver = x
                 timetower.generate_log(driver)
+                print(check_array)
+                break
 
     def generate_log(driver):
         if (ir['DriverInfo']['Drivers'][driver]['UserName']):
@@ -57,31 +58,25 @@ class timetower():
         class_pos_array = (ir['CarIdxClassPosition'])
 
         lap = lap_arrays[driver]
-        if lap == -1:
+        if lap == "-1":
             lap =""
         best_lap_s = best_lap_s_array[driver]
-        if best_lap_s == -1:
+        if best_lap_s == "-1":
             best_lap_s ="" 
         last_lap_s = last_lap_s_array[driver]
-        if last_lap_s == -1:
+        if last_lap_s == "-1":
             last_lap_s =""
         pit = pit_arrays[driver]
         pos = pos_array[driver]
         class_pos = class_pos_array[driver]
     
         log = {
-            "driver":name,
-            "car":car,
-            "irating":irating,
-            "car_num":car_num,
-            "car_class":car_class,
-            "team":team,
-            "lap":lap,
-            "best_lap_s":best_lap_s,
-            "last_lap_s":last_lap_s,
+            "session":logs.session,
+            "driver":logs.driver,
+            "car":logs.car,
+            "position":logs.position,
+            "lap":logs.driver_lap,
             "pit":pit,
-            "pos":pos,
-            "class_pos":class_pos
         }
         es.index(
         index='test-time_tower',
@@ -99,5 +94,9 @@ es = Elasticsearch(
 es.info
 
 check_array = timetower.initiate()
-driver = timetower.loop(check_array)
-timetower.generate_log(driver)
+try:
+    while True:
+        driver = timetower.loop(check_array)
+        time.sleep(1)
+except: KeyboardInterrupt
+pass

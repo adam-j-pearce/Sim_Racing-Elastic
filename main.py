@@ -1,10 +1,10 @@
 import irsdk
 import time
-from time import gmtime,strftime
 from datetime import datetime, timedelta
 from elasticsearch import Elasticsearch, helpers
 import json
 import csv
+from _timetower import *
 
 es = Elasticsearch(
     cloud_id="7cca989133cf49fbbe8251be0453787d:dXMtY2VudHJhbDEuZ2NwLmNsb3VkLmVzLmlvJGVjZjhmMDI4NzZlODRhMDhhNjk1YzM5YmNlODRiYTZlJGE4NDJiOWUwNGM3NDRiYzJiN2I5MTQ3OWExY2I3ZDk2",
@@ -50,7 +50,6 @@ def log_telemetry():
     global telemetry_array
     
     telemetry_info={
-        "@timestamp":timestamp,
         "session":logging.session(),
         "track":logging.track(),
         "driver":logging.driver(),
@@ -84,7 +83,6 @@ def log_lap():
             inc_count = ir['DriverInfo']['DriverIncidentCount']
 
     lap_log={
-        "@timestamp":timestamp,
         "session":logging.session(),
         "track":logging.track(),
         "car":logging.car(),
@@ -98,14 +96,6 @@ def log_lap():
         index='test-index',
         document=json.dumps(lap_log)
     )
-
-def log_timetower():
-
-    driver_count=(len(ir['DriverInfo']['Drivers']))
-    driver_array = [range(driver_count)]
-    for x in range(driver_count):
-        if ir['DriverInfo']['Drivers'][x]['UserName']:
-            driver_array.append(ir['DriverInfo']['Drivers'][x]['UserName'])
 
 class logging:
 
@@ -134,31 +124,6 @@ class logging:
         print(car_name)
         print(car_class)
         return car_info
-
-    def driver():
-    
-        global driver_info
-
-        driver_car_id = ir['PlayerCarIdx']
-
-        driver_name = ir['DriverInfo']['Drivers'][driver_car_id]['UserName']
-        driver_id = ir['DriverInfo']['Drivers'][driver_car_id]['UserID']
-        if ir['DriverInfo']['Drivers'][driver_car_id]['TeamName'] == 1:
-            team = ir['DriverInfo']['Drivers'][driver_car_id]['TeamName']
-        else: 
-            team = ''
-        irating = ir['DriverInfo']['Drivers'][driver_car_id]['IRating']
-        license = ir['DriverInfo']['Drivers'][driver_car_id]['LicString']
-    
-        driver_info = {
-            "name":driver_name,
-            "id":driver_id,
-            "team":team,
-            "irating":irating,
-            "license":license
-        }
-        
-        return driver_info
 
     def fuel():
 
@@ -211,34 +176,6 @@ class logging:
         }
 
         return meta_info
-
-    def session():
-   
-        session = ir['WeekendInfo']['EventType']
-        session_id = ir['WeekendInfo']['SessionID']
-        subsession_id = ir['WeekendInfo']['SubSessionID']
-        season_id = ir['WeekendInfo']['SeasonID']
-        official = ir['WeekendInfo']['Official']
-
-        if str(ir['WeekendInfo']['EventType']) == "Test":
-            now = datetime.now()
-            timestamp = now.strftime("%d/%m/%Y %H:%M:%S")
-            session_id == "Testing-",timestamp
-
-        if official == "0":
-            official = False
-        else:
-            official = True
-
-        session_info = {
-                "type":session,
-                "id":session_id,
-                "sub_id":subsession_id,
-                "season":season_id,
-                "official":official
-            }
-
-        return session_info
 
     def telemetry():
 
@@ -323,33 +260,13 @@ def check_iracing():
 
 def loop():
 
-    global timestamp
-    global driver_check
-    global driver_info
-    global lap
-    global driver_lap
-    
-    now = datetime.now()
-    timestamp = now.strftime("%m/%d/%Y %H:%M:%S")
-
-    if ir['IsOnTrack'] == False:
-        driver_check == False
-    
-    log_timetower()
-
-    if ir['IsOnTrack'] == True:
-        if driver_check == False:
-            driver_enter_car()
-    lap = ir['Lap']
-    if lap > driver_lap and ir['LapLastLapTime'] > 0:
-        log_lap()
-    log_telemetry()
-
+    timetower.loop
 
 if __name__ == '__main__':
     # initializing ir and state
     ir = irsdk.IRSDK()
     state = State()
+    timetower.initiate
 
     try:
         while True:
