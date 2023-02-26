@@ -8,12 +8,13 @@ ir.startup()
 
 class logs():
 
-    def session():
+    def session_info():
 
         session = ir['WeekendInfo']['EventType']
         session_id = ir['WeekendInfo']['SessionID']
         subsession_id = ir['WeekendInfo']['SubSessionID']
         season_id = ir['WeekendInfo']['SeasonID']
+        serioes_id = ir['WeekendInfo']['SeriesID']
         official = ir['WeekendInfo']['Official']
         if str(ir['WeekendInfo']['EventType']) == "Test":
             now = datetime.now()
@@ -33,6 +34,25 @@ class logs():
             }
 
         return session_info
+    
+    def session_time():
+        time_remaining = ['SessionTimeRemain']
+        laps_remaining = ['SessionLapsRemain']
+        laps_remaining_expected = ['SessionLapsRemainEx']
+        session_time = ['SessionTimeOfDay']
+
+        session_time = {
+            "time":{
+                "current": session_time,
+                "remaining": time_remaining
+            },
+            "laps":{
+                "remaining": laps_remaining,
+                "expected": laps_remaining_expected
+            }
+        }
+
+        return session_time
 
     def driver(driver_car_id):
 
@@ -60,7 +80,7 @@ class logs():
         car_class = ""
         car_num = ir['DriverInfo']['Drivers'][driver_car_id]['CarNumber']
         car_name = ir['DriverInfo']['Drivers'][driver_car_id]['CarScreenName']
-        with open('car_list.csv', "r") as csv_file:
+        with open('\lookups\car_list.csv', "r") as csv_file:
                 car_list = csv.reader(csv_file, delimiter = ',')
                 for row in car_list:
                     if car_name in row[0]:
@@ -120,6 +140,21 @@ class logs():
         }
 
         return lap
+    
+    def car_location(driver_car_id):
+
+        location = ['CarIdxTrackSurface'][driver_car_id]
+        match location:
+            case '-1':
+                location = "Not in car"
+            case "0":
+                location = "Off Track"
+            case "1":
+                location = "In Pits"
+            case "2":
+                location = "In Pits"
+            case "3":
+                location = ""
 
     def pit_initiate():
 
